@@ -2,28 +2,103 @@
 title: "R Notebook"
 output: html_notebook
 ---
-
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 
 ```{r}
 knitr::opts_chunk$set(warning=F,error = F,message = F)
 require(tidyverse)
-require(caret)
-require("recipes")
+#require(caret)
+#require("recipes")
 require(pdp)
 require(utf8)
 require("skimr")
 require(foreign)
 require(readr)
 library(haven)
-
+require("readstata13")
+require(scales)
 
 ASRraw <- read_dta("2016-ASR_Public_Use_File.dta")
 
+head(ASRraw)
+
 
 ```
+
+```{r}
+
+ASR_educ <-
+ASRraw %>%
+select (hhid, qn1i, qn1h, qn2a, qn2b, qn3a, qn3b, qn4a, qn4b, qn4c)%>% 
+rename("nationality"="qn1h")%>% # What is the person's nationality?
+rename("ethnic"="qn1i") %>% 
+rename("yearseduc"="qn2a") %>% 
+rename("highcert"="qn2b") %>% 
+rename("job_type"="qn3a") %>% 
+rename("job_act"="qn3b") %>% 
+rename("eng_arrival"="qn4a") %>% 
+rename("eng_current"="qn4b") %>% 
+rename("eng_edu_pre"="qn4c") %>% 
+mutate(nationality=as.character(as_factor(nationality)))%>% 
+mutate(ethnic=as_factor(ethnic))%>%
+mutate(job_type=as_factor(job_type)) %>% 
+mutate(eng_arrival=as_factor(eng_arrival))
+
+skimr::skim(ASR_educ)
+  
+
+head(ASR_educ)
+
+ASRtest <-
+ASR_educ%>%
+  select(hhid, nationality, ethnic)
+
+graph <-ggplot(ASRtest, mapping=)
+
+
+head(ASRtest)
+
+
+
+# Histogram on a Continuous (Numeric) Variable
+
+ggplot(ASR_educ, aes(x = as.factor(job_type))) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
+  scale_y_continuous(labels = percent) +
+  coord_flip()+
+  labs(title = "Nationality in the sample", x = "Nationality", y = "Percent")
+  
+
+ggplot(ASR_educ, aes(x = as.factor(eng_arrival))) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = 0.5) +
+  scale_y_continuous(labels = percent) +
+  coord_flip()+
+  labs(title = "Nationality in the sample", x = "Nationality", y = "Percent")
+  
+ggplot(ASR_educ, aes(x = as.factor(eng_arrival))) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = 0.5) +
+  scale_y_continuous(labels = percent) +
+  coord_flip()+
+  labs(title = "Nationality in the sample", x = "Nationality", y = "Percent")
+
+
+
+
+
+
+ 
+ 
+
+
+```
+```{r}
+
+```
+
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
