@@ -6,20 +6,21 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 
 ```{r}
+
 knitr::opts_chunk$set(warning=F,error = F,message = F)
+
+install.packages(caret)
+require(recipes)
 require(tidyverse)
-#require(caret)
-#require("recipes")
 require(pdp)
 require(utf8)
 require("skimr")
 require(foreign)
 require(readr)
 library(haven)
-require("readstata13")
 require(scales)
 
-ASRraw <- read_dta("2016-ASR_Public_Use_File.dta")
+ASRraw <- read_dta("2016-ASR_Public_Use_File.dta") ##Loading main dataset
 
 head(ASRraw)
 
@@ -28,55 +29,235 @@ head(ASRraw)
 
 ```{r}
 
+#### Rafael: I create a new dataframe with the variables in which I am interesting (education and employment) ##
+
 ASR_educ <-
 ASRraw %>%
-select (hhid, qn1i, qn1h, qn2a, qn2b, qn3a, qn3b, qn4a, qn4b, qn4c)%>% 
-rename("nationality"="qn1h")%>% # What is the person's nationality?
-rename("ethnic"="qn1i") %>% 
-rename("yearseduc"="qn2a") %>% 
-rename("highcert"="qn2b") %>% 
-rename("job_type"="qn3a") %>% 
-rename("job_act"="qn3b") %>% 
-rename("eng_arrival"="qn4a") %>% 
-rename("eng_current"="qn4b") %>% 
-rename("eng_edu_pre"="qn4c") %>% 
-mutate(nationality=as.character(as_factor(nationality)))%>% 
-mutate(ethnic=as_factor(ethnic))%>%
-mutate(job_type=as_factor(job_type)) %>% 
-mutate(eng_arrival=as_factor(eng_arrival))
-
-skimr::skim(ASR_educ)
+select (hhid, qn1h, qn1l, qn2a, qn2b, qn3a, qn3b, qn4a, qn4b, qn4c, qn4e, 
+        qn4j,qn5a, qn5b,qn5c, qn6a, qn8a, qn8b, qn10a, qn10b, qn11a, qn18c, qn20, qn24a, qn25a, qn25b, qn25c)%>%
   
-
+rename ("nationality"="qn1h") %>%  #"What is this person's country of citizenship?
+rename ("refugee"="qn1l") %>%  #"Is this person a refugee who entered between 2011 and 2016?
+rename("yearseduc"="qn2a") %>%   #Years of education
+rename("highcert"="qn2b") %>%     #Highest degree obtained before coming to the U.S.?
+rename("job_type"="qn3a") %>%     #Area of work before coming to the U.S.?
+rename("job_act"="qn3b") %>%      #Type of activity before coming to the U.S.?
+rename("eng_arrival"="qn4a") %>%   #On arrival, how well did the person speak English?
+rename("eng_current"="qn4b") %>%   #How well does the person speak English now?
+rename("eng_edu_pre"="qn4c") %>%   #Language instruction before coming to the U.S.? 
+rename("eng_training"="qn4e") %>%  #English training in the past 12 months?
+rename("eng_training_current"="qn4j") %>%  #Currently enrolled in English language training
+rename("work"="qn5a") %>%  #Person worked at a job anytime last week?
+rename("multiplejobs"="qn5b") %>%  #Person worked more than 1 job anytime last week?
+rename("jobs"="qn5c") %>%  #Number of jobs
+rename("workhours"="qn6a") %>%  #Number of hours  
+rename("pretaxinc"="qn8a") %>%  #PreTax income
+rename("incomebasis"="qn8b") %>%  #On what basis is pre-tax income compiled?
+rename("pretaxinc2"="qn10a") %>%  #Earnings from second job
+rename("incomebasis2"="qn10b") %>%  #On what basis is pre-tax income compiled?
+rename("everworked"="qn11a") %>%  #Has this person worked since arrival to the US?
+rename("incometotal"="qn18c") %>% #Income from all sources
+rename("employer"="qn20") %>% #Is the person working for private, federal, state, local...
+rename("training"="qn24a") %>% #Attended job training in past 12 months?
+rename("school"="qn25a") %>% #Attended school or university in past 12 months?
+rename("schoolfordegree"="qn25b") %>% #"Attending school for degree or certificate?"
+rename("degree"="qn25c") %>%   #"What degree is person attempting to earn?"
+mutate(nationality=as_factor(nationality)) %>%
+mutate(job_type=as_factor(job_type)) %>%
+mutate(job_act=as_factor(job_act)) %>% 
+mutate(eng_arrival=as_factor(eng_arrival)) %>% 
+mutate(eng_current=as_factor(eng_current)) %>% 
+mutate(eng_edu_pre=as_factor(eng_edu_pre)) %>%
+mutate(eng_training_current=as_factor(eng_training_current)) %>% 
+mutate(eng_training=as_factor(eng_training)) %>%
+mutate(highcert=as_factor(highcert)) %>% 
+mutate(work=as_factor(work)) %>% 
+mutate(multiplejobs=as_factor(multiplejobs)) %>% 
+mutate(everworked=as_factor(everworked)) %>% 
+mutate(employer=as_factor(employer)) %>% 
+mutate(training=as_factor(training)) %>% 
+mutate(school=as_factor(school)) %>%
+mutate(schoolfordegree=as_factor(schoolfordegree)) %>% 
+mutate(degree=as_factor(degree)) %>% 
+filter(refugee==2) %>% 
+filter(incometotal<9999998)
 head(ASR_educ)
 
-ASRtest <-
-ASR_educ%>%
-  select(hhid, nationality, ethnic)
+```
 
-graph <-ggplot(ASRtest, mapping=)
+```{r}
+
+#Type of activity before coming to the U.S.?
+ggplot(data=subset(ASR_educ, !is.na(job_type)), aes(x = as.factor(job_type))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "Job before coming to the US", x = "Job type", y = "Percent")
+
+#On arrival, how well did the person speak English?
+ggplot(data=subset(ASR_educ, !is.na(eng_arrival)), aes(x = as.factor(eng_arrival))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "English level on arrival", x = "Job type", y = "Percent")
+
+#How well does the person speak English now?
+ggplot(data=subset(ASR_educ, !is.na(eng_current)), aes(x = as.factor(eng_current))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "How well speak English now?", x = "Job type", y = "Percent")
+
+#Language instruction before coming to the U.S.? 
+ggplot(data=subset(ASR_educ, !is.na(eng_edu_pre)), aes(x = as.factor(eng_edu_pre))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "Language instruction before U.S.", x = "Job type", y = "Percent")
+
+#English training in the past 12 months?
+ggplot(data=subset(ASR_educ, !is.na(eng_training)), aes(x = as.factor(eng_training))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "English training in past 12 months", x = "Job type", y = "Percent")
+
+#Currently enrolled in English language training
+ggplot(data=subset(ASR_educ, !is.na(eng_training_current)), aes(x = as.factor(eng_training_current))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "English training current", x = "Job type", y = "Percent")
+
+#Person worked at a job anytime last week?
+ggplot(data=subset(ASR_educ, !is.na(work)), aes(x = as.factor(work))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "Work", x = "Job type", y = "Percent")
+
+#Person worked more than 1 job anytime last week?
+ggplot(data=subset(ASR_educ, !is.na(multiplejobs)), aes(x = as.factor(multiplejobs))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "Work multiple jobs", x = "Job type", y = "Percent")
+
+#Is the person working for private, federal, state, local...
+ggplot(data=subset(ASR_educ, !is.na(employer)), aes(x = as.factor(employer))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "Employer", x = "Job type", y = "Percent")
+
+#Attended school or university in past 12 months?
+ggplot(data=subset(ASR_educ, !is.na(school)), aes(x = as.factor(school))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "School", x = "Job type", y = "Percent")
+
+#"Attending school for degree or certificate?"
+ggplot(data=subset(ASR_educ, !is.na(schoolfordegree)), aes(x = as.factor(schoolfordegree))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  
+  coord_flip()+
+  labs(title = "School for certificate", x = "Job type", y = "Percent")
+
+#"What degree is person attempting to earn?"
+ggplot(data=subset(ASR_educ, !is.na(degree)), aes(x = as.factor(degree))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  coord_flip()+
+  labs(title = "Degree pursued", x = "Job type", y = "Percent")
+
+#Attended job training in past 12 months?
+ggplot(data=subset(ASR_educ, !is.na(training)), aes(x = as.factor(training))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  coord_flip()+
+  labs(title = "Training", x = "Job type", y = "Percent")
+
+ggplot(data=subset(ASR_educ, !is.na(training)), aes(x = as.factor(training))) + 
+geom_bar(aes(y = (..count..)/sum(..count..)), width=.5, fill = "steelblue") +
+    geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", hjust=-.1) +
+  scale_y_continuous(labels = percent) +
+  coord_flip()+
+  labs(title = "Training", x = "Job type", y = "Percent")
 
 
-head(ASRtest)
+library(ggplot2)
+library(scales)
+theme_set(theme_classic())
+
+# Plot
+ggplot(ASR_educ, aes(x=nationality, y=incometotal)) + 
+  geom_point(col="tomato2", size=3) +   # Draw points
+  geom_segment(aes(x=nationality, 
+                   xend=nationality, 
+                   y=min(incometotal), 
+                   yend=max(incometotal)), 
+               linetype="dashed", 
+               size=0.1) +   # Draw dashed lines
+  labs(title="Nationality and total income", 
+       subtitle="Nationality and total income earned", 
+       caption="source: mpg") +  
+  scale_y_continuous()+
+  coord_flip()
 
 
+g <- ggplot(ASR_educ, aes(incometotal))
+g + geom_density(aes(fill="tomato3"), alpha=0.8) + 
+    labs(title="Density plot", 
+         subtitle="Income distribution among refugees in survey",
+         caption="Source: mpg",
+         x="Total income distribution")+
+ scale_y_continuous()+
+theme_classic()
 
-# Histogram on a Continuous (Numeric) Variable
+our_recipe <-
+  step_center(all_numeric()) %>% # Center mean around 0
+  step_scale(all_numeric()) %>%  # Set variance to 1
+  prep()
+our_recipe
 
-ggplot(ASR_educ, aes(x = as.factor(job_type))) +
+
+ASR_processed <-bake(our_recipe, new_data=ASR_educ)
+ 
+
+```
+
+
+ggplot(ASR_educ, aes(x = as.factor(job_type)), na.rm=TRUE) +
   geom_bar(aes(y = (..count..)/sum(..count..))) +
   geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
   scale_y_continuous(labels = percent) +
   coord_flip()+
-  labs(title = "Nationality in the sample", x = "Nationality", y = "Percent")
-  
-
-ggplot(ASR_educ, aes(x = as.factor(eng_arrival))) +
-  geom_bar(aes(y = (..count..)/sum(..count..))) +
-  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = 0.5) +
-  scale_y_continuous(labels = percent) +
-  coord_flip()+
-  labs(title = "Nationality in the sample", x = "Nationality", y = "Percent")
+  labs(title = "Job", x = "Nationality", y = "Percent")
   
 ggplot(ASR_educ, aes(x = as.factor(eng_arrival))) +
   geom_bar(aes(y = (..count..)/sum(..count..))) +
@@ -84,15 +265,27 @@ ggplot(ASR_educ, aes(x = as.factor(eng_arrival))) +
   scale_y_continuous(labels = percent) +
   coord_flip()+
   labs(title = "Nationality in the sample", x = "Nationality", y = "Percent")
+  
+ggplot(ASR_educ, aes(x = as.factor(eng_arrival))) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = 0.5) +
+  scale_y_continuous(labels = percent) +
+  coord_flip()+
+  labs(title = "Nationality in the sample", x = "Nationality", y = "Percent")
 
+ggplot(ASR_educ, aes(x = as.factor(eng_current))) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = 0.5) +
+  scale_y_continuous(labels = percent) +
+  coord_flip()+
+  labs(title = "Nationality in the sample", x = "Nationality", y = "Percent")
 
-
-
-
-
- 
- 
-
+ggplot(ASR_educ, aes(x = as.factor(highcert))) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = 0.5) +
+  scale_y_continuous(labels = percent) +
+  coord_flip()
+#+labs(title = "Nationality in the sample", x = "Nationality", y = "Percent")
 
 ```
 ```{r}
