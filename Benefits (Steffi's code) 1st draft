@@ -32,7 +32,9 @@ ggplot(ASR, aes(x = as.factor(qn30a))) +
 food stamps?") +
   geom_bar(position='dodge') +
   scale_x_discrete(labels=c("1" = "No", "2" = "Yes",
-                              "8" = "Don't know", "9" = "Refused"))
+                              "8" = "Don't know", "9" = "Refused")) +
+  xlab("Responses") +
+  ylab("Frequency")
 ```
 
 
@@ -52,7 +54,9 @@ ggplot(ASR, aes(x = as.factor(qn31a))) +
   labs(title = "In the last month, was TANF received?") +
   geom_bar() +
   scale_x_discrete(labels=c("1" = "No", "2" = "Yes",
-                              "8" = "Don't know", "9" = "Refused"))
+                              "8" = "Don't know", "9" = "Refused")) +
+  xlab("Responses") +
+  ylab("Frequency")
 ```
 
 Q32a. In the past 12 months, have one or more persons in your household
@@ -64,10 +68,13 @@ received assistance through the Refugee Cash Assistance (RCA) program?
 
 ```{r}
 ggplot(ASR, aes(x = as.factor(qn32a))) +
-  xlim("No", "Yes") +
   labs(title = "In the past 12 months, have one or more persons in your household
 received assistance through the Refugee Cash Assistance (RCA) program?") +
-  geom_histogram()
+  geom_bar() +
+    scale_x_discrete(labels=c("1" = "No", "2" = "Yes",
+                              "8" = "Don't know", "9" = "Refused")) +
+  xlab("Responses") +
+  ylab("Frequency")
 ```
 
 Q33a. In the past 12 months, have one or more persons in your household
@@ -78,12 +85,13 @@ received Supplemental Security Income (SSI)?
 9 (DO NOT READ) Refused
 ```{r}
 ggplot(ASR, aes(x = as.factor(qn33a))) +
-  xlim("No", "Yes") +
   labs(title = "n the past 12 months, have one or more persons in your household
 received Supplemental Security Income (SSI)?") +
   geom_bar() +
   scale_x_discrete(labels=c("1" = "No", "2" = "Yes",
-                              "8" = "Don't know", "9" = "Refused"))
+                              "8" = "Don't know", "9" = "Refused")) +
+  xlab("Responses") +
+  ylab("Frequency")
 ```
 
 
@@ -101,5 +109,7 @@ ggplot(ASR, aes(x = as.factor(qn34a))) +
 received income from General Assistance (GA)?") +
   geom_bar() +
   scale_x_discrete(labels=c("1" = "No", "2" = "Yes",
-                              "8" = "Don't know", "9" = "Refused"))
+                              "8" = "Don't know", "9" = "Refused")) +
+  xlab("Responses") +
+  ylab("Frequency")
 ```
